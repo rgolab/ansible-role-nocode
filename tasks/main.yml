@@ -1,30 +1,15 @@
 ---
-- name: create gandalf config directory
+- name: create nocode config directory
   file: path={{ item }} state=directory
   loop:
     - ~/.nocode
     - ~/.nocode/n8n
     - ~/.nocode/nginx
+    - ~/.nocode/page/assets/images
     - ~/.nocode/baserow
     - ~/.nocode/postgres
     - ~/.nocode/redis
     - ~/.nocode/qdrant
-
-- name: create nginx config files
-  copy:
-    src: "conf.d/"
-    dest: "~/.nocode/nginx/"
-    directory_mode: yes
-  notify:
-    - restart loadbalancer
-
-- name: Add a user to a password file
-  htpasswd:
-    path: "~/.nocode/nginx/.passwdfile"
-    name: admin
-    password: "{{ lookup('env','NOCODE_QDRANT_DASHBOARD_PASSWORD') }}"
-  notify:
-    - restart loadbalancer
 
 - name: create postgres init db script
   copy:
@@ -39,22 +24,6 @@
       - subnet: 172.23.27.0/24
         gateway: 172.23.27.1
         iprange: 172.23.27.0/26
-
-- name: start loadbalancer container
-  docker_container:
-    name: loadbalancer
-    image: nginx:1.25.3
-    networks:
-      - name: nocode
-        ipv4_address: "172.23.27.10"
-        aliases:
-          - loadbalancer
-    log_driver: local
-    volumes:
-      - ~/.nocode/nginx:/etc/nginx/conf.d:ro
-    published_ports:
-      - 80:80
-    restart_policy: unless-stopped
 
 - name: start redis container
   docker_container:
@@ -200,8 +169,53 @@
       PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "True"
     restart_policy: unless-stopped
 
+- name: create nginx config files
+  copy:
+    src: "conf.d/"
+    dest: "~/.nocode/nginx/"
+    directory_mode: yes
+  notify:
+    - restart loadbalancer
+
+- name: Add a user to a password file
+  htpasswd:
+    path: "~/.nocode/nginx/.passwdfile"
+    name: admin
+    password: "{{ lookup('env','NOCODE_QDRANT_DASHBOARD_PASSWORD') }}"
+  notify:
+    - restart loadbalancer
+
+- name: copy main page assets files
+  copy:
+    src: "page/"
+    dest: "~/.nocode/page/"
+  notify:
+    - restart loadbalancer
+
+- name: create page from template
+  template:
+    src: index.html.j2
+    dest: "~/.nocode/page/index.html"
+
+- name: start loadbalancer container
+  docker_container:
+    name: loadbalancer
+    image: nginx:1.25.3
+    networks:
+      - name: nocode
+        ipv4_address: "172.23.27.10"
+        aliases:
+          - loadbalancer
+    log_driver: local
+    volumes:
+      - ~/.nocode/nginx:/etc/nginx/conf.d:ro
+      - ~/.nocode/page:/var/www/html:ro
+    published_ports:
+      - 80:80
+    restart_policy: unless-stopped
+
 - meta: flush_handlers
 
 - name: display post install message
   debug:
-    msg: "system should be available on {{ protocol }}://{{ domain }}"
+    msg: "Platforma gotowa - sprawdź: {{ protocol }}://{{ domain }}"
