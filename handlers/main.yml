@@ -1,0 +1,10 @@
+---
+- name: restart loadbalancer
+  docker_container:
+    name: loadbalancer
+    restart: yes
+
+- name: restart postgres
+  docker_container:
+    name: postgres
+    restart: yes

@@ -1,0 +1,207 @@
+---
+- name: create gandalf config directory
+  file: path={{ item }} state=directory
+  loop:
+    - ~/.nocode
+    - ~/.nocode/n8n
+    - ~/.nocode/nginx
+    - ~/.nocode/baserow
+    - ~/.nocode/postgres
+    - ~/.nocode/redis
+    - ~/.nocode/qdrant
+
+- name: create nginx config files
+  copy:
+    src: "conf.d/"
+    dest: "~/.nocode/nginx/"
+    directory_mode: yes
+  notify:
+    - restart loadbalancer
+
+- name: Add a user to a password file
+  htpasswd:
+    path: "~/.nocode/nginx/.passwdfile"
+    name: admin
+    password: "{{ lookup('env','NOCODE_QDRANT_DASHBOARD_PASSWORD') }}"
+  notify:
+    - restart loadbalancer
+
+- name: create postgres init db script
+  copy:
+    src: "postgres/init-db.sh"
+    dest: "~/.nocode/postgres-init-db.sh"
+    mode: u=rwx,g=rx,o=rx
+
+- name: Create a network with custom IPAM config
+  docker_network:
+    name: nocode
+    ipam_config:
+      - subnet: 172.23.27.0/24
+        gateway: 172.23.27.1
+        iprange: 172.23.27.0/26
+
+- name: start loadbalancer container
+  docker_container:
+    name: loadbalancer
+    image: nginx:1.25.3
+    networks:
+      - name: nocode
+        ipv4_address: "172.23.27.10"
+        aliases:
+          - loadbalancer
+    log_driver: local
+    volumes:
+      - ~/.nocode/nginx:/etc/nginx/conf.d:ro
+    published_ports:
+      - 80:80
+    restart_policy: unless-stopped
+
+- name: start redis container
+  docker_container:
+    name: redis
+    image: redis:7.2.3
+    networks:
+      - name: nocode
+        ipv4_address: "172.23.27.11"
+        aliases:
+          - redis
+    log_driver: local
+    volumes:
+      - ~/.nocode/redis:/data
+    published_ports:
+      - 127.0.0.1:6379:6379
+    restart_policy: unless-stopped
+
+- name: start postgres container
+  docker_container:
+    name: postgres
+    image: postgres:16.1
+    networks:
+      - name: nocode
+        ipv4_address: "172.23.27.12"
+        aliases:
+          - postgres
+    log_driver: local
+    env:
+      POSTGRES_USER: "{{ lookup('env','NOCODE_POSTGRES_USER') }}"
+      POSTGRES_PASSWORD: "{{ lookup('env','NOCODE_POSTGRES_PASSWORD') }}"
+      POSTGRES_DB: "{{ lookup('env','NOCODE_POSTGRES_DB') }}"
+      POSTGRES_NON_ROOT_USER: "{{ lookup('env','NOCODE_POSTGRES_NON_ROOT_USER') }}"
+      POSTGRES_NON_ROOT_PASSWORD: "{{ lookup('env','NOCODE_POSTGRES_NON_ROOT_PASSWORD') }}"
+      N8N_POSTGRES_DB: "{{ lookup('env','NOCODE_N8N_POSTGRES_DB') }}"
+      BASEROW_POSTGRES_DB: "{{ lookup('env','NOCODE_BASEROW_POSTGRES_DB') }}"
+      GANDALF_POSTGRES_DB: "{{ lookup('env','NOCODE_GANDALF_POSTGRES_DB') }}"
+    volumes:
+      - ~/.nocode/postgres:/var/lib/postgresql/data
+      - ~/.nocode/postgres-init-db.sh:/docker-entrypoint-initdb.d/init-data.sh
+    published_ports:
+      - 127.0.0.1:5432:5432
+    restart_policy: unless-stopped
+
+- name: start baserow container
+  docker_container:
+    name: baserow
+    image: baserow/baserow:1.21.2
+    networks:
+      - name: nocode
+        ipv4_address: "172.23.27.13"
+        aliases:
+          - baserow
+    log_driver: local
+    env:
+      BASEROW_PUBLIC_URL: "{{ protocol }}://baserow.{{ domain }}"
+      DATABASE_URL: "postgresql://{{ lookup('env','NOCODE_POSTGRES_NON_ROOT_USER') }}:{{ lookup('env','NOCODE_POSTGRES_NON_ROOT_PASSWORD') }}@postgres:5432/{{ lookup('env','NOCODE_BASEROW_POSTGRES_DB') }}"
+      REDIS_URL: "redis://redis:6379"
+    volumes:
+      - ~/.nocode/baserow:/baserow/data
+    restart_policy: unless-stopped
+
+- name: start qdrant container
+  docker_container:
+    name: qdrant
+    image: qdrant/qdrant:v1.6.1
+    networks:
+      - name: nocode
+        ipv4_address: "172.23.27.14"
+        aliases:
+          - qdrant
+    log_driver: local
+    volumes:
+      - ~/.nocode/qdrant:/qdrant/storage:z
+    published_ports:
+      - 127.0.0.1:6333:6333
+    restart_policy: unless-stopped
+
+- name: start n8n container
+  docker_container:
+    name: n8n
+    image: docker.n8n.io/n8nio/n8n:1.18.0
+    networks:
+      - name: nocode
+        ipv4_address: "172.23.27.15"
+        aliases:
+          - n8n
+    user: root
+    log_driver: local
+    env:
+      DB_TYPE: "postgresdb"
+      DB_POSTGRESDB_HOST: "postgres"
+      DB_POSTGRESDB_PORT: "5432"
+      DB_POSTGRESDB_DATABASE: "{{ lookup('env','NOCODE_N8N_POSTGRES_DB') }}"
+      DB_POSTGRESDB_USER: "{{ lookup('env','NOCODE_POSTGRES_NON_ROOT_USER') }}"
+      DB_POSTGRESDB_PASSWORD: "{{ lookup('env','NOCODE_POSTGRES_NON_ROOT_PASSWORD') }}"
+      EXECUTIONS_MODE: "queue"
+      QUEUE_BULL_REDIS_HOST: "redis"
+      QUEUE_HEALTH_CHECK_ACTIVE: "true"
+      WEBHOOK_URL: "{{ protocol }}://n8n.{{ domain }}"
+    volumes:
+      - ~/.nocode/n8n:/home/node/.n8n
+    restart_policy: unless-stopped
+
+- name: start n8n worker container
+  docker_container:
+    name: n8n-worker
+    image: docker.n8n.io/n8nio/n8n:1.18.0
+    networks:
+      - name: nocode
+        ipv4_address: "172.23.27.16"
+        aliases:
+          - n8n-worker
+    user: root
+    log_driver: local
+    env:
+      DB_TYPE: "postgresdb"
+      DB_POSTGRESDB_HOST: "postgres"
+      DB_POSTGRESDB_PORT: "5432"
+      DB_POSTGRESDB_DATABASE: "{{ lookup('env','NOCODE_N8N_POSTGRES_DB') }}"
+      DB_POSTGRESDB_USER: "{{ lookup('env','NOCODE_POSTGRES_NON_ROOT_USER') }}"
+      DB_POSTGRESDB_PASSWORD: "{{ lookup('env','NOCODE_POSTGRES_NON_ROOT_PASSWORD') }}"
+      EXECUTIONS_MODE: "queue"
+      QUEUE_BULL_REDIS_HOST: "redis"
+      QUEUE_HEALTH_CHECK_ACTIVE: "true"
+    volumes:
+      - ~/.nocode/n8n:/home/node/.n8n
+    restart_policy: unless-stopped
+    command:
+      - worker
+
+- name: start pgAdmin container
+  docker_container:
+    name: pgadmin
+    image: dpage/pgadmin4:8.0
+    networks:
+      - name: nocode
+        ipv4_address: "172.23.27.17"
+        aliases:
+          - pgadmin
+    env:
+      PGADMIN_DEFAULT_EMAIL: user@domain.com
+      PGADMIN_DEFAULT_PASSWORD: SuperSecret
+      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "True"
+    restart_policy: unless-stopped
+
+- meta: flush_handlers
+
+- name: display post install message
+  debug:
+    msg: "system should be available on {{ protocol }}://{{ domain }}"
