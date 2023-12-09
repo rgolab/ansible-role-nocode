@@ -1,0 +1,3 @@
+---
+ansible_ssh_user: "{{ lookup('env', 'NOCODE_USER') }}"
+domain: "{{ lookup('env', 'NOCODE_DOMAIN') }}"
