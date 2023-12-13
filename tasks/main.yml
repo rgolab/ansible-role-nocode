@@ -4,6 +4,7 @@
   loop:
     - ~/.nocode
     - ~/.nocode/n8n
+    - ~/.nocode/n8n/nodes
     - ~/.nocode/nginx
     - ~/.nocode/page/assets/images
     - ~/.nocode/baserow
@@ -124,7 +125,7 @@
       QUEUE_HEALTH_CHECK_ACTIVE: "true"
       WEBHOOK_URL: "{{ protocol }}://n8n.{{ domain }}"
     volumes:
-      - ~/.nocode/n8n:/home/node/.n8n
+      - ~/.nocode/n8n:/root/.n8n
     restart_policy: unless-stopped
 
 - name: start n8n worker container
@@ -149,10 +150,26 @@
       QUEUE_BULL_REDIS_HOST: "redis"
       QUEUE_HEALTH_CHECK_ACTIVE: "true"
     volumes:
-      - ~/.nocode/n8n:/home/node/.n8n
+      - ~/.nocode/n8n:/root/.n8n
     restart_policy: unless-stopped
     command:
       - worker
+
+- name: install n8n extensions
+  community.docker.docker_container_exec:
+    container: n8n
+    command: /bin/sh -c "npm install n8n-nodes-baserow-trigger n8n-nodes-digital-ocean n8n-nodes-discord n8n-nodes-google-sheets-trigger n8n-nodes-notionmd n8n-nodes-ntfy n8n-nodes-text-manipulation"
+    chdir: /root/.n8n/nodes
+  register: result
+
+- name: restart n8n and n8n-worker
+  docker_container:
+    name: "{{  item }}"
+    restart: yes
+  loop:
+    - n8n
+    - n8n-worker
+  when: result.stdout.find('up to date') == -1
 
 - name: start pgAdmin container
   docker_container:
