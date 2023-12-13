@@ -168,22 +168,6 @@
     command:
       - worker
 
-- name: install n8n extensions
-  community.docker.docker_container_exec:
-    container: n8n
-    command: /bin/sh -c "npm install n8n-nodes-baserow-trigger n8n-nodes-digital-ocean n8n-nodes-discord n8n-nodes-google-sheets-trigger n8n-nodes-notionmd n8n-nodes-ntfy n8n-nodes-text-manipulation"
-    chdir: /root/.n8n/nodes
-  register: result
-
-- name: restart n8n and n8n-worker
-  docker_container:
-    name: "{{  item }}"
-    restart: yes
-  loop:
-    - n8n
-    - n8n-worker
-  when: result.stdout.find('up to date') == -1
-
 - name: start pgAdmin container
   docker_container:
     name: pgadmin
@@ -262,6 +246,22 @@
     published_ports:
       - 80:80
     restart_policy: unless-stopped
+
+- name: install n8n extensions
+  community.docker.docker_container_exec:
+    container: n8n
+    command: /bin/sh -c "npm install n8n-nodes-baserow-trigger n8n-nodes-digital-ocean n8n-nodes-discord n8n-nodes-google-sheets-trigger n8n-nodes-notionmd n8n-nodes-ntfy n8n-nodes-text-manipulation"
+    chdir: /root/.n8n/nodes
+  register: result
+
+- name: restart n8n and n8n-worker
+  docker_container:
+    name: "{{  item }}"
+    restart: yes
+  loop:
+    - n8n
+    - n8n-worker
+  when: result.stdout.find('up to date') == -1
 
 - meta: flush_handlers
 
