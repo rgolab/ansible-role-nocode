@@ -67,6 +67,12 @@
     published_ports:
       - 127.0.0.1:5432:5432
     restart_policy: unless-stopped
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
 
 - name: start baserow container
   docker_container:
@@ -127,6 +133,12 @@
     volumes:
       - ~/.nocode/n8n:/root/.n8n
     restart_policy: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "-t", "1", "-T", "2", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 - name: start n8n worker container
   docker_container:
