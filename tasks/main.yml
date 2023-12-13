@@ -3,6 +3,7 @@
   file: path={{ item }} state=directory
   loop:
     - ~/.nocode
+    - ~/.nocode/ntfy
     - ~/.nocode/n8n
     - ~/.nocode/n8n/nodes
     - ~/.nocode/nginx
@@ -197,6 +198,25 @@
       PGADMIN_DEFAULT_PASSWORD: SuperSecret
       PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "True"
     restart_policy: unless-stopped
+
+- name: start NTFY container
+  docker_container:
+    name: ntfy
+    image: binwiederhier/ntfy:v2.7.0
+    env:
+      TZ: "UTC"
+      NTFY_BASE_URL: "{{ protocol }}://ntfy.{{ domain }}"
+      NTFY_UPSTREAM_BASE_URL: "https://ntfy.sh"
+    volumes:
+      - ~/.nocode/ntfy:/etc/ntfy"
+    networks:
+      - name: nocode
+        ipv4_address: "172.23.27.18"
+        aliases:
+          - ntfy
+    restart_policy: unless-stopped
+    command:
+      - serve
 
 - name: create nginx config files
   copy:
