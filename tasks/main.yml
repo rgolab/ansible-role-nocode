@@ -131,6 +131,7 @@
       QUEUE_BULL_REDIS_HOST: "redis"
       QUEUE_HEALTH_CHECK_ACTIVE: "true"
       WEBHOOK_URL: "{{ protocol }}://n8n.{{ domain }}"
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
     volumes:
       - ~/.nocode/n8n:/root/.n8n
     restart_policy: unless-stopped
@@ -162,6 +163,7 @@
       EXECUTIONS_MODE: "queue"
       QUEUE_BULL_REDIS_HOST: "redis"
       QUEUE_HEALTH_CHECK_ACTIVE: "true"
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
     volumes:
       - ~/.nocode/n8n:/root/.n8n
     restart_policy: unless-stopped

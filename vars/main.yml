@@ -1,3 +1,4 @@
 ---
 ansible_ssh_user: "{{ lookup('env', 'NOCODE_SSH_USER') }}"
-domain: "{{ lookup('env', 'NOCODE_DOMAIN') | d('127.0.0.1.nip.io', true) }}"
+hip: "{{ ansible_default_ipv4.address }}.nip.io"
+domain: "{{ lookup('env', 'NOCODE_DOMAIN') | d(hip, true) }}"
