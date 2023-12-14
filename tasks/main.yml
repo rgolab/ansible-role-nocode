@@ -19,7 +19,7 @@
     dest: "~/.nocode/postgres-init-db.sh"
     mode: u=rwx,g=rx,o=rx
 
-- name: Create a network with custom IPAM config
+- name: create a network with custom IPAM config
   docker_network:
     name: nocode
     ipam_config:
@@ -39,8 +39,8 @@
     log_driver: local
     volumes:
       - ~/.nocode/redis:/data
-    published_ports:
-      - 127.0.0.1:6379:6379
+#    published_ports:
+#      - 127.0.0.1:6379:6379
     restart_policy: unless-stopped
 
 - name: start postgres container
@@ -65,8 +65,8 @@
     volumes:
       - ~/.nocode/postgres:/var/lib/postgresql/data
       - ~/.nocode/postgres-init-db.sh:/docker-entrypoint-initdb.d/init-data.sh
-    published_ports:
-      - 127.0.0.1:5432:5432
+#    published_ports:
+#      - 127.0.0.1:5432:5432
     restart_policy: unless-stopped
     healthcheck:
       test: ["CMD", "pg_isready", "-h", "localhost", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}"]
@@ -105,8 +105,8 @@
     log_driver: local
     volumes:
       - ~/.nocode/qdrant:/qdrant/storage:z
-    published_ports:
-      - 127.0.0.1:6333:6333
+#    published_ports:
+#      - 127.0.0.1:6333:6333
     restart_policy: unless-stopped
 
 - name: start n8n container
@@ -178,8 +178,8 @@
         aliases:
           - pgadmin
     env:
-      PGADMIN_DEFAULT_EMAIL: user@domain.com
-      PGADMIN_DEFAULT_PASSWORD: SuperSecret
+      PGADMIN_DEFAULT_EMAIL: "{{ lookup('env','NOCODE_PGADMIN_EMAIL') }}"
+      PGADMIN_DEFAULT_PASSWORD: "{{ lookup('env','NOCODE_PGADMIN_PASSWORD') }}"
       PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "True"
     restart_policy: unless-stopped
 
@@ -210,7 +210,7 @@
   notify:
     - restart loadbalancer
 
-- name: Add a user to a password file
+- name: add qdrant dashboard admin password
   htpasswd:
     path: "~/.nocode/nginx/.passwdfile"
     name: admin
@@ -265,6 +265,6 @@
 
 - meta: flush_handlers
 
-- name: display post install message
+- name: installation is done
   debug:
     msg: "Platforma gotowa - sprawdź: {{ protocol }}://{{ domain }}"
