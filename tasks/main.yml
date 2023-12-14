@@ -245,6 +245,7 @@
       - ~/.nocode/page:/var/www/html:ro
     published_ports:
       - 80:80
+      - 443:443
     restart_policy: unless-stopped
 
 - name: install n8n extensions
