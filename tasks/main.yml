@@ -23,11 +23,7 @@
     common_name: "{{ hip }}"
     organization_name: No Code Platform
     subject_alt_name:
-      - "DNS:n8n.{{ hip }}"
-      - "DNS:baserow.{{ hip }}"
-      - "DNS:ntfy.{{ hip }}"
-      - "DNS:pgadmin.{{ hip }}"
-      - "DNS:qdrant.{{ hip }}"
+      - "DNS:*.{{ hip }}"
   register: csr
 
 - name: create self-signed certificate from CSR
