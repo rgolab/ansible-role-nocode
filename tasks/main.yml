@@ -49,7 +49,7 @@
 
 - name: start redis container
   docker_container:
-    name: redis
+    name: nocode-redis
     image: redis:7.2.3
     networks:
       - name: nocode
@@ -65,7 +65,7 @@
 
 - name: start postgres container
   docker_container:
-    name: postgres
+    name: nocode-postgres
     image: postgres:16.1
     networks:
       - name: nocode
@@ -97,7 +97,7 @@
 
 - name: start baserow container
   docker_container:
-    name: baserow
+    name: nocode-baserow
     image: baserow/baserow:1.21.2
     networks:
       - name: nocode
@@ -120,7 +120,7 @@
 
 - name: start qdrant container
   docker_container:
-    name: qdrant
+    name: nocode-qdrant
     image: qdrant/qdrant:v1.6.1
     networks:
       - name: nocode
@@ -136,7 +136,7 @@
 
 - name: start n8n container
   docker_container:
-    name: n8n
+    name: nocode-n8n
     image: docker.n8n.io/n8nio/n8n:1.18.0
     networks:
       - name: nocode
@@ -169,7 +169,7 @@
 
 - name: start n8n worker container
   docker_container:
-    name: n8n-worker
+    name: nocode-n8n-worker
     image: docker.n8n.io/n8nio/n8n:1.18.0
     networks:
       - name: nocode
@@ -197,7 +197,7 @@
 
 - name: start pgAdmin container
   docker_container:
-    name: pgadmin
+    name: nocode-pgadmin
     image: dpage/pgadmin4:8.0
     networks:
       - name: nocode
@@ -212,7 +212,7 @@
 
 - name: start NTFY container
   docker_container:
-    name: ntfy
+    name: nocode-ntfy
     image: binwiederhier/ntfy:v2.7.0
     env:
       TZ: "UTC"
@@ -259,25 +259,25 @@
 
 - name: start loadbalancer container
   docker_container:
-    name: loadbalancer
+    name: nocode-lb
     image: nginx:1.25.3
     networks:
       - name: nocode
         ipv4_address: "172.23.27.10"
         aliases:
-          - loadbalancer
+          - lb
     log_driver: local
     volumes:
       - ~/.nocode/nginx:/etc/nginx/conf.d:ro
       - ~/.nocode/page:/var/www/html:ro
     published_ports:
       - 80:80
-      - 443:443
+      - "{{ ansible_default_ipv4.address }}:443:443"
     restart_policy: unless-stopped
 
 - name: install n8n extensions
   community.docker.docker_container_exec:
-    container: n8n
+    container: nocode-n8n
     command: /bin/sh -c "npm install n8n-nodes-baserow-trigger n8n-nodes-digital-ocean n8n-nodes-discord n8n-nodes-google-sheets-trigger n8n-nodes-notionmd n8n-nodes-ntfy n8n-nodes-text-manipulation"
     chdir: /root/.n8n/nodes
   register: result
@@ -287,8 +287,8 @@
     name: "{{  item }}"
     restart: yes
   loop:
-    - n8n
-    - n8n-worker
+    - nocode-n8n
+    - nocode-n8n-worker
   when: result.stdout.find('up to date') == -1
 
 - meta: flush_handlers

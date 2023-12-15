@@ -1,10 +1,10 @@
 ---
 - name: restart loadbalancer
   docker_container:
-    name: loadbalancer
+    name: nocode-lb
     restart: yes
 
 - name: restart postgres
   docker_container:
-    name: postgres
+    name: nocode-postgres
     restart: yes
