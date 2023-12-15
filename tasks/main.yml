@@ -106,7 +106,7 @@
           - baserow
     log_driver: local
     env:
-      BASEROW_PUBLIC_URL: "{{ protocol }}://baserow.{{ domain }}"
+      BASEROW_PUBLIC_URL: "https://baserow.{{ domain }}"
       DATABASE_URL: "postgresql://{{ lookup('env','NOCODE_POSTGRES_NON_ROOT_USER') }}:{{ lookup('env','NOCODE_POSTGRES_NON_ROOT_PASSWORD') }}@postgres:5432/{{ lookup('env','NOCODE_BASEROW_POSTGRES_DB') }}"
       REDIS_URL: "redis://redis:6379"
       # BASEROW_BACKEND_LOG_LEVEL: "DEBUG"
@@ -155,7 +155,7 @@
       EXECUTIONS_MODE: "queue"
       QUEUE_BULL_REDIS_HOST: "redis"
       QUEUE_HEALTH_CHECK_ACTIVE: "true"
-      WEBHOOK_URL: "{{ protocol }}://n8n.{{ domain }}"
+      WEBHOOK_URL: "https://n8n.{{ domain }}"
       NODE_TLS_REJECT_UNAUTHORIZED: "0"
     volumes:
       - ~/.nocode/n8n:/root/.n8n
@@ -216,7 +216,7 @@
     image: binwiederhier/ntfy:v2.7.0
     env:
       TZ: "UTC"
-      NTFY_BASE_URL: "{{ protocol }}://ntfy.{{ domain }}"
+      NTFY_BASE_URL: "https://ntfy.{{ domain }}"
       NTFY_UPSTREAM_BASE_URL: "https://ntfy.sh"
     volumes:
       - ~/.nocode/ntfy:/etc/ntfy"
@@ -295,4 +295,4 @@
 
 - name: installation is done
   debug:
-    msg: "Platforma gotowa - sprawdź: {{ protocol }}://{{ domain }}"
+    msg: "Platforma gotowa - sprawdź: https://{{ domain }}"
