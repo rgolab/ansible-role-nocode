@@ -13,6 +13,30 @@
     - ~/.nocode/redis
     - ~/.nocode/qdrant
 
+- name: create private key
+  community.crypto.openssl_privatekey:
+    path: ~/.nocode/nginx/certificate.key
+
+- name: create certificate signing request (CSR) for self-signed certificate
+  community.crypto.openssl_csr_pipe:
+    privatekey_path: ~/.nocode/nginx/certificate.key
+    common_name: "{{ hip }}"
+    organization_name: No Code Platform
+    subject_alt_name:
+      - "DNS:n8n.{{ hip }}"
+      - "DNS:baserow.{{ hip }}"
+      - "DNS:ntfy.{{ hip }}"
+      - "DNS:pgadmin.{{ hip }}"
+      - "DNS:qdrant.{{ hip }}"
+  register: csr
+
+- name: create self-signed certificate from CSR
+  community.crypto.x509_certificate:
+    path: ~/.nocode/nginx/certificate.pem
+    csr_content: "{{ csr.csr }}"
+    privatekey_path: ~/.nocode/nginx/certificate.key
+    provider: selfsigned
+
 - name: create postgres init db script
   copy:
     src: "postgres/init-db.sh"
@@ -89,8 +113,13 @@
       BASEROW_PUBLIC_URL: "{{ protocol }}://baserow.{{ domain }}"
       DATABASE_URL: "postgresql://{{ lookup('env','NOCODE_POSTGRES_NON_ROOT_USER') }}:{{ lookup('env','NOCODE_POSTGRES_NON_ROOT_PASSWORD') }}@postgres:5432/{{ lookup('env','NOCODE_BASEROW_POSTGRES_DB') }}"
       REDIS_URL: "redis://redis:6379"
+      # BASEROW_BACKEND_LOG_LEVEL: "DEBUG"
+      # https://community.baserow.io/t/issue-with-webhook-url-check/2094/7
+      BASEROW_WEBHOOKS_ALLOW_PRIVATE_ADDRESS: "true"
+      CURL_CA_BUNDLE: "/etc/ssl/certs/self-signed.pem"
     volumes:
       - ~/.nocode/baserow:/baserow/data
+      - ~/.nocode/nginx/certificate.pem:/etc/ssl/certs/self-signed.pem:ro
     restart_policy: unless-stopped
 
 - name: start qdrant container
