@@ -89,7 +89,7 @@
 #      - 127.0.0.1:5432:5432
     restart_policy: unless-stopped
     healthcheck:
-      test: ["CMD", "pg_isready", "-h", "localhost", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}"]
+      test: ["CMD", "pg_isready", "-h", "localhost", "-U", "{{ lookup('env','NOCODE_POSTGRES_USER') }}", "-d", "{{ lookup('env','NOCODE_POSTGRES_DB') }}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -218,8 +218,14 @@
       TZ: "UTC"
       NTFY_BASE_URL: "https://ntfy.{{ domain }}"
       NTFY_UPSTREAM_BASE_URL: "https://ntfy.sh"
+      NTFY_CACHE_FILE: /etc/ntfy/cache.db
+      NTFY_AUTH_FILE: /etc/ntfy/auth.db
+      NTFY_AUTH_DEFAULT_ACCESS: deny-all
+      NTFY_BEHIND_PROXY: "true"
+      NTFY_ATTACHMENT_CACHE_DIR: /etc/ntfy/attachments
+      NTFY_ENABLE_LOGIN: "true"
     volumes:
-      - ~/.nocode/ntfy:/etc/ntfy"
+      - ~/.nocode/ntfy:/etc/ntfy
     networks:
       - name: nocode
         ipv4_address: "172.23.27.18"
@@ -274,6 +280,11 @@
       - 80:80
       - "{{ ansible_default_ipv4.address }}:443:443"
     restart_policy: unless-stopped
+
+- name: add admin user for NTFY
+  community.docker.docker_container_exec:
+    container: nocode-ntfy
+    command: /bin/sh -c "NTFY_PASSWORD={{ lookup('env','NOCODE_NTFY_PASSWORD') }} ntfy user add --ignore-exists --role=admin admin"
 
 - name: install n8n extensions
   community.docker.docker_container_exec:
