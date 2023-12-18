@@ -50,7 +50,7 @@
 - name: start redis container
   docker_container:
     name: nocode-redis
-    image: redis:7.2.3
+    image: "redis:{{ redis_version }}"
     networks:
       - name: nocode
         ipv4_address: "172.23.27.11"
@@ -66,7 +66,7 @@
 - name: start postgres container
   docker_container:
     name: nocode-postgres
-    image: postgres:16.1
+    image: "postgres:{{ postgres_version }}"
     networks:
       - name: nocode
         ipv4_address: "172.23.27.12"
@@ -98,7 +98,7 @@
 - name: start baserow container
   docker_container:
     name: nocode-baserow
-    image: baserow/baserow:1.21.2
+    image: "baserow/baserow:{{ baserow_version }}"
     networks:
       - name: nocode
         ipv4_address: "172.23.27.13"
@@ -121,7 +121,7 @@
 - name: start qdrant container
   docker_container:
     name: nocode-qdrant
-    image: qdrant/qdrant:v1.6.1
+    image: "qdrant/qdrant:v{{ qdrant_version }}"
     networks:
       - name: nocode
         ipv4_address: "172.23.27.14"
@@ -137,7 +137,7 @@
 - name: start n8n container
   docker_container:
     name: nocode-n8n
-    image: docker.n8n.io/n8nio/n8n:1.18.0
+    image: "docker.n8n.io/n8nio/n8n:{{ n8n_version }}"
     networks:
       - name: nocode
         ipv4_address: "172.23.27.15"
@@ -170,7 +170,7 @@
 - name: start n8n worker container
   docker_container:
     name: nocode-n8n-worker
-    image: docker.n8n.io/n8nio/n8n:1.18.0
+    image: "docker.n8n.io/n8nio/n8n:{{ n8n_version }}"
     networks:
       - name: nocode
         ipv4_address: "172.23.27.16"
@@ -198,7 +198,7 @@
 - name: start pgAdmin container
   docker_container:
     name: nocode-pgadmin
-    image: dpage/pgadmin4:8.0
+    image: "dpage/pgadmin4:{{ pgadmin_version }}"
     networks:
       - name: nocode
         ipv4_address: "172.23.27.17"
@@ -213,7 +213,7 @@
 - name: start NTFY container
   docker_container:
     name: nocode-ntfy
-    image: binwiederhier/ntfy:v2.7.0
+    image: "binwiederhier/ntfy:v{{ ntfy_version }}"
     env:
       TZ: "UTC"
       NTFY_BASE_URL: "https://ntfy.{{ domain }}"
@@ -266,7 +266,7 @@
 - name: start loadbalancer container
   docker_container:
     name: nocode-lb
-    image: nginx:1.25.3
+    image: "nginx:{{ nginx_version }}"
     networks:
       - name: nocode
         ipv4_address: "172.23.27.10"
