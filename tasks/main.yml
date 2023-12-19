@@ -278,7 +278,7 @@
       - ~/.nocode/page:/var/www/html:ro
     published_ports:
       - 80:80
-      - "{{ ansible_default_ipv4.address }}:443:443"
+      - 443:443
     restart_policy: unless-stopped
 
 - name: add admin user for NTFY
