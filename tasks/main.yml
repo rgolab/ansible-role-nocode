@@ -157,6 +157,7 @@
       QUEUE_HEALTH_CHECK_ACTIVE: "true"
       WEBHOOK_URL: "https://n8n.{{ domain }}"
       NODE_TLS_REJECT_UNAUTHORIZED: "0"
+      GENERIC_TIMEZONE: "Europe/Warsaw"
     volumes:
       - ~/.nocode/n8n:/root/.n8n
     restart_policy: unless-stopped
@@ -189,6 +190,7 @@
       QUEUE_BULL_REDIS_HOST: "redis"
       QUEUE_HEALTH_CHECK_ACTIVE: "true"
       NODE_TLS_REJECT_UNAUTHORIZED: "0"
+      GENERIC_TIMEZONE: "Europe/Warsaw"
     volumes:
       - ~/.nocode/n8n:/root/.n8n
     restart_policy: unless-stopped
