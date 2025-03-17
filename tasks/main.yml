@@ -59,8 +59,8 @@
     log_driver: local
     volumes:
       - ~/.nocode/redis:/data
-#    published_ports:
-#      - 127.0.0.1:6379:6379
+    #    published_ports:
+    #      - 127.0.0.1:6379:6379
     restart_policy: unless-stopped
 
 - name: start postgres container
@@ -85,11 +85,21 @@
     volumes:
       - ~/.nocode/postgres:/var/lib/postgresql/data
       - ~/.nocode/postgres-init-db.sh:/docker-entrypoint-initdb.d/init-data.sh
-#    published_ports:
-#      - 127.0.0.1:5432:5432
+    #    published_ports:
+    #      - 127.0.0.1:5432:5432
     restart_policy: unless-stopped
     healthcheck:
-      test: ["CMD", "pg_isready", "-h", "localhost", "-U", "{{ lookup('env','NOCODE_POSTGRES_USER') }}", "-d", "{{ lookup('env','NOCODE_POSTGRES_DB') }}"]
+      test:
+        [
+          "CMD",
+          "pg_isready",
+          "-h",
+          "localhost",
+          "-U",
+          "{{ lookup('env','NOCODE_POSTGRES_USER') }}",
+          "-d",
+          "{{ lookup('env','NOCODE_POSTGRES_DB') }}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -130,8 +140,8 @@
     log_driver: local
     volumes:
       - ~/.nocode/qdrant:/qdrant/storage:z
-#    published_ports:
-#      - 127.0.0.1:6333:6333
+    #    published_ports:
+    #      - 127.0.0.1:6333:6333
     restart_policy: unless-stopped
 
 - name: start n8n container
@@ -159,11 +169,25 @@
       NODE_TLS_REJECT_UNAUTHORIZED: "0"
       GENERIC_TIMEZONE: "Europe/Warsaw"
       NODE_FUNCTION_ALLOW_BUILTIN: "*"
+      NODE_FUNCTION_ALLOW_EXTERNAL: "uuid"
+      N8N_ENCRYPTION_KEY: "{{ lookup('env','NOCODE_N8N_ENCRYPTION_KEY') }}"
     volumes:
       - ~/.nocode/n8n:/root/.n8n
     restart_policy: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "-t", "1", "-T", "2", "http://localhost:5678/healthz"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "-O",
+          "/dev/null",
+          "-t",
+          "1",
+          "-T",
+          "2",
+          "http://localhost:5678/healthz",
+        ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -193,6 +217,8 @@
       NODE_TLS_REJECT_UNAUTHORIZED: "0"
       GENERIC_TIMEZONE: "Europe/Warsaw"
       NODE_FUNCTION_ALLOW_BUILTIN: "*"
+      NODE_FUNCTION_ALLOW_EXTERNAL: "uuid"
+      N8N_ENCRYPTION_KEY: "{{ lookup('env','NOCODE_N8N_ENCRYPTION_KEY') }}"
     volumes:
       - ~/.nocode/n8n:/root/.n8n
     restart_policy: unless-stopped
@@ -293,7 +319,7 @@
 - name: install n8n extensions
   community.docker.docker_container_exec:
     container: nocode-n8n
-    command: /bin/sh -c "npm install n8n-nodes-baserow-trigger n8n-nodes-digital-ocean n8n-nodes-discord n8n-nodes-google-sheets-trigger n8n-nodes-notionmd n8n-nodes-ntfy n8n-nodes-text-manipulation"
+    command: /bin/sh -c "npm install n8n-nodes-mcp n8n-nodes-baserow-trigger n8n-nodes-digital-ocean n8n-nodes-discord n8n-nodes-google-sheets-trigger n8n-nodes-notionmd n8n-nodes-ntfy n8n-nodes-text-manipulation n8n-nodes-debughelper n8n-nodes-globals"
     chdir: /root/.n8n/nodes
   register: result
 
