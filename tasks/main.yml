@@ -2,16 +2,16 @@
 - name: create nocode config directory
   file: path={{ item }} state=directory
   loop:
-    - ~/.nocode
-    - ~/.nocode/ntfy
-    - ~/.nocode/n8n
-    - ~/.nocode/n8n/nodes
-    - ~/.nocode/nginx
-    - ~/.nocode/page/assets/images
-    - ~/.nocode/baserow
-    - ~/.nocode/postgres
-    - ~/.nocode/redis
-    - ~/.nocode/qdrant
+  - ~/.nocode
+  - ~/.nocode/ntfy
+  - ~/.nocode/n8n
+  - ~/.nocode/n8n/nodes
+  - ~/.nocode/nginx
+  - ~/.nocode/page/assets/images
+  - ~/.nocode/baserow
+  - ~/.nocode/postgres
+  - ~/.nocode/redis
+  - ~/.nocode/qdrant
 
 - name: create private key
   community.crypto.openssl_privatekey:
@@ -23,7 +23,7 @@
     common_name: "{{ hip }}"
     organization_name: No Code Platform
     subject_alt_name:
-      - "DNS:*.{{ hip }}"
+    - "DNS:*.{{ hip }}"
   register: csr
 
 - name: create self-signed certificate from CSR
@@ -43,22 +43,22 @@
   docker_network:
     name: nocode
     ipam_config:
-      - subnet: 172.23.27.0/24
-        gateway: 172.23.27.1
-        iprange: 172.23.27.0/26
+    - subnet: 172.23.27.0/24
+      gateway: 172.23.27.1
+      iprange: 172.23.27.0/26
 
 - name: start redis container
   docker_container:
     name: nocode-redis
     image: "redis:{{ redis_version }}"
     networks:
-      - name: nocode
-        ipv4_address: "172.23.27.11"
-        aliases:
-          - redis
+    - name: nocode
+      ipv4_address: "172.23.27.11"
+      aliases:
+      - redis
     log_driver: local
     volumes:
-      - ~/.nocode/redis:/data
+    - ~/.nocode/redis:/data
     #    published_ports:
     #      - 127.0.0.1:6379:6379
     restart_policy: unless-stopped
@@ -68,10 +68,10 @@
     name: nocode-postgres
     image: "postgres:{{ postgres_version }}"
     networks:
-      - name: nocode
-        ipv4_address: "172.23.27.12"
-        aliases:
-          - postgres
+    - name: nocode
+      ipv4_address: "172.23.27.12"
+      aliases:
+      - postgres
     log_driver: local
     env:
       POSTGRES_USER: "{{ lookup('env','NOCODE_POSTGRES_USER') }}"
@@ -83,23 +83,13 @@
       BASEROW_POSTGRES_DB: "{{ lookup('env','NOCODE_BASEROW_POSTGRES_DB') }}"
       GANDALF_POSTGRES_DB: "{{ lookup('env','NOCODE_GANDALF_POSTGRES_DB') }}"
     volumes:
-      - ~/.nocode/postgres:/var/lib/postgresql/data
-      - ~/.nocode/postgres-init-db.sh:/docker-entrypoint-initdb.d/init-data.sh
+    - ~/.nocode/postgres:/var/lib/postgresql/data
+    - ~/.nocode/postgres-init-db.sh:/docker-entrypoint-initdb.d/init-data.sh
     #    published_ports:
     #      - 127.0.0.1:5432:5432
     restart_policy: unless-stopped
     healthcheck:
-      test:
-        [
-          "CMD",
-          "pg_isready",
-          "-h",
-          "localhost",
-          "-U",
-          "{{ lookup('env','NOCODE_POSTGRES_USER') }}",
-          "-d",
-          "{{ lookup('env','NOCODE_POSTGRES_DB') }}",
-        ]
+      test: [ "CMD", "pg_isready", "-h", "localhost", "-U", "{{ lookup('env','NOCODE_POSTGRES_USER') }}", "-d", "{{ lookup('env','NOCODE_POSTGRES_DB') }}" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -110,10 +100,10 @@
     name: nocode-baserow
     image: "baserow/baserow:{{ baserow_version }}"
     networks:
-      - name: nocode
-        ipv4_address: "172.23.27.13"
-        aliases:
-          - baserow
+    - name: nocode
+      ipv4_address: "172.23.27.13"
+      aliases:
+      - baserow
     log_driver: local
     env:
       BASEROW_PUBLIC_URL: "https://baserow.{{ domain }}"
@@ -124,8 +114,8 @@
       BASEROW_WEBHOOKS_ALLOW_PRIVATE_ADDRESS: "true"
       CURL_CA_BUNDLE: "/etc/ssl/certs/self-signed.pem"
     volumes:
-      - ~/.nocode/baserow:/baserow/data
-      - ~/.nocode/nginx/certificate.pem:/etc/ssl/certs/self-signed.pem:ro
+    - ~/.nocode/baserow:/baserow/data
+    - ~/.nocode/nginx/certificate.pem:/etc/ssl/certs/self-signed.pem:ro
     restart_policy: unless-stopped
 
 - name: start qdrant container
@@ -133,13 +123,13 @@
     name: nocode-qdrant
     image: "qdrant/qdrant:v{{ qdrant_version }}"
     networks:
-      - name: nocode
-        ipv4_address: "172.23.27.14"
-        aliases:
-          - qdrant
+    - name: nocode
+      ipv4_address: "172.23.27.14"
+      aliases:
+      - qdrant
     log_driver: local
     volumes:
-      - ~/.nocode/qdrant:/qdrant/storage:z
+    - ~/.nocode/qdrant:/qdrant/storage:z
     #    published_ports:
     #      - 127.0.0.1:6333:6333
     restart_policy: unless-stopped
@@ -149,10 +139,10 @@
     name: nocode-n8n
     image: "docker.n8n.io/n8nio/n8n:{{ n8n_version }}"
     networks:
-      - name: nocode
-        ipv4_address: "172.23.27.15"
-        aliases:
-          - n8n
+    - name: nocode
+      ipv4_address: "172.23.27.15"
+      aliases:
+      - n8n
     user: root
     log_driver: local
     env:
@@ -171,23 +161,13 @@
       NODE_FUNCTION_ALLOW_BUILTIN: "*"
       NODE_FUNCTION_ALLOW_EXTERNAL: "uuid"
       N8N_ENCRYPTION_KEY: "{{ lookup('env','NOCODE_N8N_ENCRYPTION_KEY') }}"
+      N8N_RUNNERS_ENABLED: "true"
+      OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS: "true"
     volumes:
-      - ~/.nocode/n8n:/root/.n8n
+    - ~/.nocode/n8n:/root/.n8n
     restart_policy: unless-stopped
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "-q",
-          "-O",
-          "/dev/null",
-          "-t",
-          "1",
-          "-T",
-          "2",
-          "http://localhost:5678/healthz",
-        ]
+      test: [ "CMD", "wget", "-q", "-O", "/dev/null", "-t", "1", "-T", "2", "http://localhost:5678/healthz" ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -198,10 +178,10 @@
     name: nocode-n8n-worker
     image: "docker.n8n.io/n8nio/n8n:{{ n8n_version }}"
     networks:
-      - name: nocode
-        ipv4_address: "172.23.27.16"
-        aliases:
-          - n8n-worker
+    - name: nocode
+      ipv4_address: "172.23.27.16"
+      aliases:
+      - n8n-worker
     user: root
     log_driver: local
     env:
@@ -219,21 +199,22 @@
       NODE_FUNCTION_ALLOW_BUILTIN: "*"
       NODE_FUNCTION_ALLOW_EXTERNAL: "uuid"
       N8N_ENCRYPTION_KEY: "{{ lookup('env','NOCODE_N8N_ENCRYPTION_KEY') }}"
+      N8N_RUNNERS_ENABLED: "true"
     volumes:
-      - ~/.nocode/n8n:/root/.n8n
+    - ~/.nocode/n8n:/root/.n8n
     restart_policy: unless-stopped
     command:
-      - worker
+    - worker
 
 - name: start pgAdmin container
   docker_container:
     name: nocode-pgadmin
     image: "dpage/pgadmin4:{{ pgadmin_version }}"
     networks:
-      - name: nocode
-        ipv4_address: "172.23.27.17"
-        aliases:
-          - pgadmin
+    - name: nocode
+      ipv4_address: "172.23.27.17"
+      aliases:
+      - pgadmin
     env:
       PGADMIN_DEFAULT_EMAIL: "{{ lookup('env','NOCODE_PGADMIN_EMAIL') }}"
       PGADMIN_DEFAULT_PASSWORD: "{{ lookup('env','NOCODE_PGADMIN_PASSWORD') }}"
@@ -255,15 +236,15 @@
       NTFY_ATTACHMENT_CACHE_DIR: /etc/ntfy/attachments
       NTFY_ENABLE_LOGIN: "true"
     volumes:
-      - ~/.nocode/ntfy:/etc/ntfy
+    - ~/.nocode/ntfy:/etc/ntfy
     networks:
-      - name: nocode
-        ipv4_address: "172.23.27.18"
-        aliases:
-          - ntfy
+    - name: nocode
+      ipv4_address: "172.23.27.18"
+      aliases:
+      - ntfy
     restart_policy: unless-stopped
     command:
-      - serve
+    - serve
 
 - name: create nginx config files
   copy:
@@ -271,7 +252,7 @@
     dest: "~/.nocode/nginx/"
     directory_mode: yes
   notify:
-    - restart loadbalancer
+  - restart loadbalancer
 
 - name: add qdrant dashboard admin password
   htpasswd:
@@ -279,14 +260,14 @@
     name: admin
     password: "{{ lookup('env','NOCODE_QDRANT_DASHBOARD_PASSWORD') }}"
   notify:
-    - restart loadbalancer
+  - restart loadbalancer
 
 - name: copy main page assets files
   copy:
     src: "page/"
     dest: "~/.nocode/page/"
   notify:
-    - restart loadbalancer
+  - restart loadbalancer
 
 - name: create page from template
   template:
@@ -298,17 +279,17 @@
     name: nocode-lb
     image: "nginx:{{ nginx_version }}"
     networks:
-      - name: nocode
-        ipv4_address: "172.23.27.10"
-        aliases:
-          - lb
+    - name: nocode
+      ipv4_address: "172.23.27.10"
+      aliases:
+      - lb
     log_driver: local
     volumes:
-      - ~/.nocode/nginx:/etc/nginx/conf.d:ro
-      - ~/.nocode/page:/var/www/html:ro
+    - ~/.nocode/nginx:/etc/nginx/conf.d:ro
+    - ~/.nocode/page:/var/www/html:ro
     published_ports:
-      - 80:80
-      - 443:443
+    - 80:80
+    - 443:443
     restart_policy: unless-stopped
 
 - name: add admin user for NTFY
@@ -328,8 +309,8 @@
     name: "{{  item }}"
     restart: yes
   loop:
-    - nocode-n8n
-    - nocode-n8n-worker
+  - nocode-n8n
+  - nocode-n8n-worker
   when: result.stdout.find('up to date') == -1
 
 - meta: flush_handlers
